@@ -343,7 +343,6 @@ const uint8_t read_gec(void)
  */
 void write_flash_ain(const uint8_t d)
 {
-
 	uint8_t i;
 
 	// output d on PORTC
@@ -752,6 +751,11 @@ void program_flash(const uint8_t data, const uint16_t address, const uint8_t ban
 	const uint8_t* offset2;
 	const uint8_t* offset3;
 
+	if(cur_flash_algorithm==2){
+		program_flash_alg16wr(data, address, bank_hi, bank_lo);
+		return;
+	}
+
 	addr = address;
 
 	if (0x00u != bank_hi || 0x00 != bank_lo)
@@ -766,14 +770,12 @@ void program_flash(const uint8_t data, const uint16_t address, const uint8_t ban
 
 	// Bring flash chip into write mode
 	for (ix = 0x0000u, i = 0x09u; i; ix += 0x03u, i -= 0x03u) {
-
 		offset = cur_flash_algorithm * 0x09u + ix;
 
 		PORTA = pgm_read_byte(&BYTE_PROGRAM[offset + 0]);
 		PORTB = pgm_read_byte(&BYTE_PROGRAM[offset + 1]);
 
 		write_flash_ain(pgm_read_byte(&BYTE_PROGRAM[offset + 2]));
-
 	}
 
 	switch_rom_bank(bank_hi, bank_lo);
@@ -828,6 +830,11 @@ void erase_flash(void)
 	const uint8_t* offset2;
 	const uint8_t* offset3;
 
+	if(cur_flash_algorithm==2){
+		erase_flash_alg16wr();
+		return;
+	}
+
 	// RB = 0x001 for addressing flash chip
 	switch_rom_bank(0x00u, 0x01u);
 
@@ -877,6 +884,11 @@ void enter_product_id_mode(void)
 	const uint8_t* offset2;
 	const uint8_t* offset3;
 
+	if(cur_flash_algorithm==2){
+		enter_product_id_mode_alg16wr();
+		return;
+	}
+
 	// RB = 0x001 for addressing flash chip
 	switch_rom_bank(0x00u, 0x01u);
 
@@ -923,6 +935,11 @@ void exit_product_id_mode(void)
 	const uint8_t* offset1;
 	const uint8_t* offset2;
 	const uint8_t* offset3;
+
+	if(cur_flash_algorithm==2){
+		exit_product_id_mode_alg16wr();
+		return;
+	}
 
 	offset3 = &PRODUCT_ID_EXIT[0x09u + 2];
 	offset2 = &PRODUCT_ID_EXIT[0x09u + 1];
@@ -1474,7 +1491,7 @@ void manipulate_data(void)
 {
 
 	cur_mbc             = packet.request.mbc;
-	cur_flash_algorithm = packet.request.algorithm & (ALG12 - ALG16 + 1 - 1);
+	cur_flash_algorithm = packet.request.algorithm & 0x03;//(ALG12 - ALG16 + 1 - 1);
 	cur_wait_mode       = packet.request.wait_mode;
 	cur_numbanks_hi     = packet.request.num_banks_hi;
 	cur_numbanks_lo     = packet.request.num_banks_lo;
@@ -1551,7 +1568,7 @@ void erase_data(void)
 	} else {
 
 		// EFLA
-		cur_flash_algorithm = packet.erase.num_banks_or_algorithm & (ALG12 - ALG16 + 1 - 1);
+		cur_flash_algorithm = packet.erase.num_banks_or_algorithm & 0x03;//(ALG12 - ALG16 + 1 - 1);
 		cur_wait_mode       = packet.erase.wait_mode;
 		erase_flash();
 
@@ -1580,7 +1597,7 @@ void send_status(void)
 
 		read_header         = true;
 		cur_mbc             = packet.request.mbc;
-		cur_flash_algorithm = packet.request.algorithm & (ALG12 - ALG16 + 1 - 1);
+		cur_flash_algorithm = packet.request.algorithm & 0x03;// (ALG12 - ALG16 + 1 - 1);
 
 	}
 
@@ -1760,4 +1777,88 @@ int main(void)
 	
 	return 0;
 
+}
+
+
+/**
+ * Program Flash Chip.
+ * Sends programming sequence to flash chip using /WE (::ALG16) methods.
+ * @param data    Byte to be written.
+ * @param address ROM address
+ * @param bank_hi High byte of ROM bank.
+ * @param bank_lo Low byte of ROM bnak.
+ */
+void program_flash_alg16wr(const uint8_t data, const uint16_t address, const uint8_t bank_hi, const uint8_t bank_lo)
+{
+
+	uint16_t addr;
+	uint16_t ix;
+	uint8_t i;
+	addr = address;
+
+	if (0x00u != bank_hi || 0x00 != bank_lo)
+		addr |= 0x4000u;
+
+	// Bring flash chip into write mode
+	for (ix = 0x0000u, i = 0x09u; i; ix += 0x03u, i -= 0x03u) {
+		PORTA = pgm_read_byte(&BYTE_PROGRAM[ix + 0]);
+		PORTB = pgm_read_byte(&BYTE_PROGRAM[ix + 1]);
+		write_gec(pgm_read_byte(&BYTE_PROGRAM[ix + 2]));
+	}
+
+	PORTA = addr >> 8;
+	PORTB = addr & 0xFFu;
+	write_gec(data);
+	wait_program_flash(FLASH_PROGRAM, data);
+}
+
+/**
+ * Erase Flash Chip.
+ * Erases whole chip using /WE (::ALG16) methods.
+ */
+void erase_flash_alg16wr(void)
+{
+	uint8_t i;
+	uint16_t ix;
+	for (ix = 0x0000u, i = 0x12u; i; ix += 0x03u,  i -= 0x03u) {
+		PORTA = pgm_read_byte(&CHIP_ERASE[ix + 0]);
+		PORTB = pgm_read_byte(&CHIP_ERASE[ix + 1]);
+		write_gec(pgm_read_byte(&CHIP_ERASE[ix + 2]));
+	}
+	wait_program_flash(FLASH_ERASE, 0xFFu);
+}
+
+/**
+ * Enter Flash Chip product ID mode.
+ * Enters mode using /WE (::ALG16) methods.
+ */
+void enter_product_id_mode_alg16wr(void)
+{
+	uint8_t i;
+	uint16_t ix;
+	uint16_t offset;
+
+	for (ix = 0x0000u, i = 0x09u; i; ix += 0x03u, i -= 0x03u) {
+		PORTA = pgm_read_byte(&PRODUCT_ID_ENTRY[ix + 0]);
+		PORTB = pgm_read_byte(&PRODUCT_ID_ENTRY[ix + 1]);
+		write_gec(pgm_read_byte(&PRODUCT_ID_ENTRY[ix + 2]));
+	}
+}
+
+/**
+ * Exit Flash Chip product ID mode.
+ * Exits mode using /WE (::ALG16) methods.
+ */
+void exit_product_id_mode_alg16wr(void)
+{
+	uint8_t i;
+	uint16_t ix;
+	uint16_t offset;
+	for (ix = 0x0000u, i = 0x09u; i; ix += 0x03u, i -= 0x03u) {
+		PORTA = pgm_read_byte(&PRODUCT_ID_EXIT[ix + 0]);
+		PORTB = pgm_read_byte(&PRODUCT_ID_EXIT[ix + 1]);
+
+		write_gec(pgm_read_byte(&PRODUCT_ID_EXIT[ix + 2]));
+	}
+	send_sram_disable();
 }

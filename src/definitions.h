@@ -33,7 +33,7 @@
 /**
  * Firmware Minor Version.
  */
-#define FW_VER_MIN "10"
+#define FW_VER_MIN "15"
 
 /**
  * Helper macro to convert char
@@ -113,7 +113,10 @@ enum flash_algorithm {
 	 * 12-bit algorithm.
 	 */
 	ALG12 = 0x01u,
-
+	/**
+	 * 16-bit algorithm with WR.
+	 */	
+	ALG16WR = 0x02u,
 };
 
 /**
