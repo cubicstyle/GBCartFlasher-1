@@ -43,7 +43,14 @@ const uint8_t BYTE_PROGRAM[] PROGMEM = {
 	0x55, 0x55, 0xaa, 0x2a, 0xaa, 0x55, 0x55, 0x55, 0xa0,
 
 	/** ALG12 */
-	0x05, 0x55, 0xaa, 0x02, 0xaa, 0x55, 0x05, 0x55, 0xa0
+	0x05, 0x55, 0xaa, 0x02, 0xaa, 0x55, 0x05, 0x55, 0xa0,
+
+	/** ALG16WR */
+	0x55, 0x55, 0xaa, 0x2a, 0xaa, 0x55, 0x55, 0x55, 0xa0,
+
+	/** ALG12_M29F */
+	0x0a, 0xaa, 0xaa, 0x05, 0x55, 0x55, 0x0a, 0xaa, 0xa0
+
 
 };
 
@@ -57,7 +64,13 @@ const uint8_t CHIP_ERASE[] PROGMEM = {
 	0x55, 0x55, 0xaa, 0x2a, 0xaa, 0x55, 0x55, 0x55, 0x80, 0x55, 0x55, 0xaa, 0x2a, 0xaa, 0x55, 0x55, 0x55, 0x10,
 
 	/** ALG12 */
-	0x05, 0x55, 0xaa, 0x02, 0xaa, 0x55, 0x05, 0x55, 0x80, 0x05, 0x55, 0xaa, 0x02, 0xaa, 0x55, 0x05, 0x55, 0x10
+	0x05, 0x55, 0xaa, 0x02, 0xaa, 0x55, 0x05, 0x55, 0x80, 0x05, 0x55, 0xaa, 0x02, 0xaa, 0x55, 0x05, 0x55, 0x10,
+
+	/** ALG16 */
+	0x55, 0x55, 0xaa, 0x2a, 0xaa, 0x55, 0x55, 0x55, 0x80, 0x55, 0x55, 0xaa, 0x2a, 0xaa, 0x55, 0x55, 0x55, 0x10,
+
+	/** ALG12_M29F */
+	0x0a, 0xaa, 0xaa, 0x05, 0x55, 0x55, 0x0a, 0xaa, 0x80, 0x0a, 0xaa, 0xaa, 0x05, 0x55, 0x55, 0x0a, 0xaa, 0x10,
 
 };
 
@@ -71,7 +84,13 @@ const uint8_t PRODUCT_ID_ENTRY[] PROGMEM = {
 	0x55, 0x55, 0xaa, 0x2a, 0xaa, 0x55, 0x55, 0x55, 0x90,
 
 	/** ALG12 */
-	0x05, 0x55, 0xaa, 0x02, 0xaa, 0x55, 0x05, 0x55, 0x90
+	0x05, 0x55, 0xaa, 0x02, 0xaa, 0x55, 0x05, 0x55, 0x90,
+
+	/** ALG16 */
+	0x55, 0x55, 0xaa, 0x2a, 0xaa, 0x55, 0x55, 0x55, 0x90,
+
+	/** ALG12_M29F */
+	0x0a, 0xaa, 0xaa, 0x05, 0x55, 0x55, 0x0a, 0xaa, 0x90
 
 };
 
@@ -85,7 +104,13 @@ const uint8_t PRODUCT_ID_EXIT[] PROGMEM = {
 	0x55, 0x55, 0xaa, 0x2a, 0xaa, 0x55, 0x55, 0x55, 0xf0,
 
 	/** ALG12 */
-	0x05, 0x55, 0xaa, 0x02, 0xaa, 0x55, 0x05, 0x55, 0xf0
+	0x05, 0x55, 0xaa, 0x02, 0xaa, 0x55, 0x05, 0x55, 0xf0,
+
+	/** ALG16 */
+	0x55, 0x55, 0xaa, 0x2a, 0xaa, 0x55, 0x55, 0x55, 0xf0,
+
+	/** ALG12_M29F */
+	0x0a, 0xaa, 0xaa, 0x05, 0x55, 0x55, 0x0a, 0xaa, 0xf0
 
 };
 
@@ -751,8 +776,12 @@ void program_flash(const uint8_t data, const uint16_t address, const uint8_t ban
 	const uint8_t* offset2;
 	const uint8_t* offset3;
 
-	if(cur_flash_algorithm==2){
+	if(cur_flash_algorithm==ALG16WR){
 		program_flash_alg16wr(data, address, bank_hi, bank_lo);
+		return;
+	}
+	else if(cur_flash_algorithm==ALG12_M29F){
+		program_flash_alg12m29f(data, address, bank_hi, bank_lo);
 		return;
 	}
 
@@ -830,8 +859,12 @@ void erase_flash(void)
 	const uint8_t* offset2;
 	const uint8_t* offset3;
 
-	if(cur_flash_algorithm==2){
+	if(cur_flash_algorithm==ALG16WR){
 		erase_flash_alg16wr();
+		return;
+	}
+	else if(cur_flash_algorithm==ALG12_M29F){
+		erase_flash_alg12m29f();
 		return;
 	}
 
@@ -884,8 +917,13 @@ void enter_product_id_mode(void)
 	const uint8_t* offset2;
 	const uint8_t* offset3;
 
-	if(cur_flash_algorithm==2){
+	if(cur_flash_algorithm==ALG16WR){
 		enter_product_id_mode_alg16wr();
+		return;
+	}
+	else if(cur_flash_algorithm==ALG12_M29F){
+        switch_rom_bank(0x00u, 0x01u);
+		enter_product_id_mode_alg12m29f();
 		return;
 	}
 
@@ -936,8 +974,12 @@ void exit_product_id_mode(void)
 	const uint8_t* offset2;
 	const uint8_t* offset3;
 
-	if(cur_flash_algorithm==2){
+	if(cur_flash_algorithm==ALG16WR){
 		exit_product_id_mode_alg16wr();
+		return;
+	}
+	else if(cur_flash_algorithm==ALG12_M29F){
+		exit_product_id_mode_alg12m29f();
 		return;
 	}
 
@@ -1195,10 +1237,9 @@ void write_rom_ram(const uint8_t ram_rom)
 	uint16_t bank_ix;
 	uint16_t address;
 	uint8_t packet_type;
-	uint8_t i;
+	uint8_t i, bank_h, bank_l;
 	volatile uint8_t* p;
-	uint8_t* p_rom;
-	uint8_t* p_ram;
+	uint8_t* p_r;
 	uint8_t* d;
 
 	reset_mbc();
@@ -1237,15 +1278,17 @@ void write_rom_ram(const uint8_t ram_rom)
 
 	do {
 
+		bank_h = bank_ix >> 8;
+		bank_l = bank_ix & 0xFFu;
+
 		if (ROM != ram_rom)
-			switch_sram_bank(bank_ix & 0xFFu);
+			switch_sram_bank(bank_l);
 
 		packet_ix = 0x0000u;
 		address = 0x0000u;
 
 		do {
-
-			if (wait_packet(packet_ix, bank_ix >> 8, bank_ix & 0xFFu, ram_rom)) {
+			if (wait_packet(packet_ix, bank_h, bank_l, ram_rom)) {
 				send_sram_disable();
 				return;
 			}
@@ -1254,32 +1297,26 @@ void write_rom_ram(const uint8_t ram_rom)
 			d = frame;
 
 			for (i = FRAMESIZE; i; i--, p++) {
-
 				*d++ = *(p + offsetof(struct packet_t, data.frame));
-
 			}
 
 			packet_type = packet.request.type;
 			packet_raw_ix = 0x00u;
 			write_usart(ACK);
 
-			p_rom = frame;
-			p_ram = frame;
+			p_r = frame;
 
-			for (i = FRAMESIZE; i ; i--, p_ram++, p_rom++) {
-
-				if (RAM != ram_rom) {
-
-					program_flash(*p_rom, address, bank_ix >> 8, bank_ix & 0xFFu);
-
-				} else {
-
-					write_sram_data(*p_ram, address);
-
+			if (RAM != ram_rom){
+				for (i = FRAMESIZE; i ; i--, p_r++ ){
+					program_flash(*p_r, address, bank_h, bank_l);
+					address++;
 				}
-
-				address++;
-
+			}
+			else{
+				for (i = FRAMESIZE; i ; i--, p_r++ ){
+					write_sram_data(*p_r, address);
+					address++;
+				}
 			}
 
 			if (LAST_DATA == packet_type) {
@@ -1518,8 +1555,32 @@ void manipulate_data(void)
 			read_rom_ram(ROM);
 			break;
 
-		default:
+		case BNK_WROM:
+			write_rom_ram_assign_bank(ROM);
+			break;
+		case BNK_WRAM:
+			write_rom_ram_assign_bank(RAM);
+			break;
 
+		case AD_RROM:
+			read_rom_ram_assign_addr(ROM);
+			break;
+		case AD_RRAM:
+			read_rom_ram_assign_addr(RAM);
+			break;
+
+		case AD_WRITE:
+			write_rom_ram_assign_addr();
+			break;
+
+		case BNK_RROM:
+			read_rom_ram_assign_bank(ROM);
+			break;
+		case BNK_RRAM:
+			read_rom_ram_assign_bank(RAM);
+			break;
+
+		default:
 			write_usart(NAK);
 			break;
 
@@ -1634,8 +1695,15 @@ void send_status(void)
 		WAIT_LOOP(220u, i);
 
 		packet.info_ans.flash_manufacturer         = read_rom_data(0x0000u, 0x00u, 0x00u);
-		packet.info_ans.flash_device_id            = read_rom_data(0x0001u, 0x00u, 0x00u);
-		packet.info_ans.flash_sector_group_protect = read_rom_data(0x0002u, 0x00u, 0x00u);
+		if(cur_flash_algorithm == ALG12_M29F){
+			packet.info_ans.flash_device_id            = read_rom_data(0x0002u, 0x00u, 0x00u);
+			packet.info_ans.flash_sector_group_protect = read_rom_data(0x0004u, 0x00u, 0x00u);
+		}
+		else
+		{
+			packet.info_ans.flash_device_id            = read_rom_data(0x0001u, 0x00u, 0x00u);
+			packet.info_ans.flash_sector_group_protect = read_rom_data(0x0002u, 0x00u, 0x00u);
+		}
 
 		exit_product_id_mode();
 
@@ -1836,7 +1904,6 @@ void enter_product_id_mode_alg16wr(void)
 {
 	uint8_t i;
 	uint16_t ix;
-	uint16_t offset;
 
 	for (ix = 0x0000u, i = 0x09u; i; ix += 0x03u, i -= 0x03u) {
 		PORTA = pgm_read_byte(&PRODUCT_ID_ENTRY[ix + 0]);
@@ -1853,8 +1920,378 @@ void exit_product_id_mode_alg16wr(void)
 {
 	uint8_t i;
 	uint16_t ix;
-	uint16_t offset;
 	for (ix = 0x0000u, i = 0x09u; i; ix += 0x03u, i -= 0x03u) {
+		PORTA = pgm_read_byte(&PRODUCT_ID_EXIT[ix + 0]);
+		PORTB = pgm_read_byte(&PRODUCT_ID_EXIT[ix + 1]);
+
+		write_gec(pgm_read_byte(&PRODUCT_ID_EXIT[ix + 2]));
+	}
+	send_sram_disable();
+}
+
+
+/*  assign address writing */
+void write_rom_ram_assign_addr()
+{
+	uint8_t i, j, data, flag;
+	volatile uint8_t* p;
+	uint8_t* d;
+
+	raw_udr_mode = 0x00u;
+	packet_raw_ix = 0x00u;
+	write_usart(ACK);
+
+	if (wait_packet(0, 0, 0, ROM)) {
+		return;
+	}
+
+	p = packet.raw;
+	d = frame;
+
+	for (i = FRAMESIZE; i; i--, p++) {
+		*d++ = *(p + offsetof(struct packet_t, data.frame));
+	}
+
+	p = frame;
+
+	for (i = 16; i ; i--) {
+		flag = *p;
+		p++;
+		if(flag & OPE_FLAG_CS){
+			PORTD &= ~(1u << PD5); // assert /CS	
+		}
+		else{
+			PORTD |= (1u << PD5);  // deassert /CS
+		}
+
+		if(flag & OPE_FLAG_AIN){
+			PORTD &= ~(1u << PD7); // assert /AIN
+		}
+		else{
+			PORTD |= (1u << PD7); // deassert /AIN
+		}
+
+		if(flag & OPE_FLAG_WR){
+			PORTD &= ~(1u << PD3); // assert /WR
+		}
+		else{
+			PORTD |= (1u << PD3); // deassert /WR
+		}
+
+		if(flag & OPE_FLAG_RD){
+			PORTD &= ~(1u << PD4); // assert /RD
+		}
+		else{
+			PORTD |= (1u << PD4); // deassert /RD
+		}
+
+		if(flag & OPE_FLAG_RST){
+			PORTD &= ~(1u << PD6); // assert /RST
+		}
+		else{
+			PORTD |= (1u << PD6); // deassert /RST
+		}
+
+		if(flag & OPE_FLAG_LED){
+			PORTD &= ~(1u<< PD2); // assert /RED_LED
+		}
+		else{
+			PORTD |= (1u << PD2); // deassert /RED_LED
+		}
+
+
+		// ADD & DATA SET SKIP
+		if( !(flag & OPE_FLAG_AD_SKIP) ){
+			PORTB = *p;
+			p++;
+			PORTA = *p;
+			p++;
+		}
+		else{
+			p++;
+			p++;
+		}
+
+		if( !(flag & OPE_FLAG_DAT_SKIP) ){
+			// output d on PORTC
+			PORTC = *p;
+			DDRC = 0xFFu;
+			p++;
+		}
+		else{
+			p++;
+		}
+    	WAIT_LOOP(0x02u, j);
+	}
+	write_usart(ACK);
+}
+
+
+void write_rom_ram_assign_bank(const uint8_t ram_rom)
+{
+	uint16_t bank_num;
+	uint8_t packet_per_bank;
+	uint16_t packet_ix;
+	uint16_t address;
+	uint8_t packet_type;
+	uint8_t i;
+	volatile uint8_t* p;
+	uint8_t* p_rom;
+	uint8_t* p_ram;
+	uint8_t* d;
+
+	reset_mbc();
+
+	if (RAM == ram_rom) {
+		send_sram_enable();
+	}
+
+	bank_num = (cur_numbanks_hi << 8) + cur_numbanks_lo;
+
+	if (RAM != ram_rom) {
+		packet_per_bank = 0x100u - 1;
+	} else {
+		packet_per_bank = 0x80u - 1;
+	}
+
+	raw_udr_mode = 0x00u;
+	packet_raw_ix = 0x00u;
+	write_usart(ACK);
+
+	if (ROM != ram_rom)
+		switch_sram_bank(bank_num & 0xFFu);
+
+	packet_ix = 0x0000u;
+	address = 0x0000u;
+
+	do {
+		if (wait_packet(packet_ix, 0, 0, ram_rom)) {
+			send_sram_disable();
+			return;
+		}
+
+		p = packet.raw;
+		d = frame;
+
+		for (i = FRAMESIZE; i; i--, p++) {
+			*d++ = *(p + offsetof(struct packet_t, data.frame));
+		}
+
+		packet_type = packet.request.type;
+		packet_raw_ix = 0x00u;
+		write_usart(ACK);
+
+		p_rom = frame;
+		p_ram = frame;
+
+		for (i = FRAMESIZE; i ; i--, p_ram++, p_rom++) {
+			if (RAM != ram_rom) {
+				program_flash(*p_rom, address, cur_numbanks_hi, cur_numbanks_lo);
+			} else {
+				write_sram_data(*p_ram, address);
+			}
+			address++;
+		}
+
+		if (LAST_DATA == packet_type) {
+			if (ROM != ram_rom)
+				send_sram_disable();
+			return;
+		}
+		packet_ix++;
+	} while (packet_ix <= packet_per_bank);
+
+	send_sram_disable();
+
+}
+
+void read_rom_ram_assign_bank(const uint8_t ram_rom)
+{
+	uint16_t bank_num;
+	uint8_t packet_per_bank;
+	uint16_t packet_ix;
+	uint16_t address;
+	uint8_t data;
+	uint8_t packet_type;
+	uint8_t i;
+	volatile uint8_t* p;
+	uint8_t* p_rom;
+	uint8_t* p_ram;
+
+	reset_mbc();
+
+	if (RAM == ram_rom) {
+		send_sram_enable();
+	}
+
+	bank_num = (cur_numbanks_hi << 8) + cur_numbanks_lo;
+
+	if (RAM != ram_rom) {
+		packet_per_bank = 0x100u - 1;
+	} else {
+		packet_per_bank = 0x80u - 1;
+	}
+
+	raw_udr_mode = 0x01u;
+	packet_raw_ix = 0x00u;
+
+	if (RAM != ram_rom) {
+		switch_rom_bank(cur_numbanks_hi, cur_numbanks_lo);
+	} else {
+		switch_sram_bank(cur_numbanks_lo);
+	}
+
+	packet_ix = 0x0000u;
+	address = 0x0000u;
+
+	do {
+		clear_packet();
+
+		if (packet_ix == packet_per_bank)
+			packet_type = 0x02;
+		else
+			packet_type = 0x01;
+
+		packet.data.type = packet_type;
+		packet.data.packet_index = packet_ix;
+		packet.data.page_index_hi = cur_numbanks_hi;
+		packet.data.page_index_lo = cur_numbanks_lo;
+
+		p_rom = packet.raw;
+		p_ram = packet.raw;
+
+		for (i = FRAMESIZE; i; i--, address++, p_rom++, p_ram++) {
+			if (RAM != ram_rom) {
+				data = read_rom_data(address, cur_numbanks_hi, cur_numbanks_lo);
+				p = p_rom;
+			} else {
+				data = read_sram_data(address);
+				p = p_ram;
+			}
+			*(p + offsetof(struct packet_t, data.frame)) = data;
+		}
+
+		if (send_packet()) {
+			if (ROM != ram_rom)
+				send_sram_disable();
+			return;
+		}
+		packet_ix++;
+	} while (packet_ix <= packet_per_bank);
+	
+	send_sram_disable();
+
+}
+
+void read_rom_ram_assign_addr(const uint8_t ram_rom)
+{
+	uint16_t address;
+	uint8_t data;
+	uint8_t packet_type;
+	uint8_t i;
+	volatile uint8_t* p;
+
+	address = (cur_numbanks_hi << 8) + cur_numbanks_lo;
+	raw_udr_mode = 0x01u;
+
+	clear_packet();
+
+	// last data
+	packet_type = 0x02;
+
+	packet.data.type = packet_type;
+	packet.data.packet_index = 0;
+	packet.data.page_index_hi = 0;
+	packet.data.page_index_lo = 0;
+
+	p = packet.raw;
+
+	for (i = FRAMESIZE; i; i--, address++, p++) {
+		if (RAM != ram_rom) {
+			data = read_rom_data(address, 0, 0);
+			} else {
+			data = read_sram_data(address);
+		}
+		*(p + offsetof(struct packet_t, data.frame)) = data;
+	}
+
+	if (send_packet()) {
+		return;
+	}
+}
+
+/**
+ * Program M29FXX Flash Chip
+ * @param data    Byte to be written.
+ * @param address ROM address
+ * @param bank_hi High byte of ROM bank.
+ * @param bank_lo Low byte of ROM bank.
+ */
+void program_flash_alg12m29f(const uint8_t data, const uint16_t address, const uint8_t bank_hi, const uint8_t bank_lo)
+{
+
+	uint16_t addr;
+	uint16_t ix;
+	uint8_t i;
+	addr = address;
+
+	if (0x00u != bank_hi || 0x00 != bank_lo)
+		addr |= 0x4000u;
+
+	switch_rom_bank(bank_hi, bank_lo);
+
+	// Bring flash chip into write mode
+	for (ix = 3 * 9, i = 0x09u; i; ix += 0x03u, i -= 0x03u) {
+		PORTA = pgm_read_byte(&BYTE_PROGRAM[ix + 0]);
+		PORTB = pgm_read_byte(&BYTE_PROGRAM[ix + 1]);
+		write_gec(pgm_read_byte(&BYTE_PROGRAM[ix + 2]));
+	}
+
+	PORTA = addr >> 8;
+	PORTB = addr & 0xFFu;
+	write_gec(data);
+	wait_program_flash(FLASH_PROGRAM, data);
+}
+
+/**
+ * Erase M29FXX Flash Chip
+ */
+void erase_flash_alg12m29f(void)
+{
+	uint8_t i;
+	uint16_t ix;
+
+	for (ix =  3 * 0x12, i = 0x12u; i; ix += 0x03u,  i -= 0x03u) {
+		PORTA = pgm_read_byte(&CHIP_ERASE[ix + 0]);
+		PORTB = pgm_read_byte(&CHIP_ERASE[ix + 1]);
+		write_gec(pgm_read_byte(&CHIP_ERASE[ix + 2]));
+	}
+	wait_program_flash(FLASH_ERASE, 0xFFu);
+}
+
+/**
+ * Enter M29FXX Flash Chip product ID mode.
+ */
+void enter_product_id_mode_alg12m29f(void)
+{
+	uint8_t i;
+	uint16_t ix;
+
+	for (ix = 3 * 9, i = 0x09u; i; ix += 0x03u, i -= 0x03u) {
+		PORTA = pgm_read_byte(&PRODUCT_ID_ENTRY[ix + 0]);
+		PORTB = pgm_read_byte(&PRODUCT_ID_ENTRY[ix + 1]);
+		write_gec(pgm_read_byte(&PRODUCT_ID_ENTRY[ix + 2]));
+	}
+}
+
+/**
+ * Exit M29FXX Flash Chip product ID mode.
+ */
+void exit_product_id_mode_alg12m29f(void)
+{
+	uint8_t i;
+	uint16_t ix;
+	for (ix = 3 * 9 , i = 0x09u; i; ix += 0x03u, i -= 0x03u) {
 		PORTA = pgm_read_byte(&PRODUCT_ID_EXIT[ix + 0]);
 		PORTB = pgm_read_byte(&PRODUCT_ID_EXIT[ix + 1]);
 

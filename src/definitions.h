@@ -20,11 +20,13 @@
  * Should be sizeof(packet_t).
  */
 #define PACKETSIZE 72
+//#define PACKETSIZE 136
 /**
  * Frame Size.
  * Should be sizeof(packet_t.data.frame).
  */
 #define FRAMESIZE 64
+//#define FRAMESIZE 128
 
 /**
  * Firmware Major Version.
@@ -33,7 +35,7 @@
 /**
  * Firmware Minor Version.
  */
-#define FW_VER_MIN "15"
+#define FW_VER_MIN "50"
 
 /**
  * Helper macro to convert char
@@ -117,6 +119,10 @@ enum flash_algorithm {
 	 * 16-bit algorithm with WR.
 	 */	
 	ALG16WR = 0x02u,
+	/**
+	 * 12-bit algorithm for M29FxxxFT BYTE mode.
+	 */
+	ALG12_M29F = 0x03u
 };
 
 /**
@@ -251,6 +257,16 @@ enum rw_operation {
 	 * Write SRAM.
 	 */
 	WRAM = 0x03u,
+
+	// extend operation
+	BNK_RROM = 0x10u,
+	BNK_RRAM = 0x11u,
+	BNK_WROM = 0x12u,
+	BNK_WRAM = 0x13u,
+	AD_RROM  = 0x20u,
+	AD_RRAM  = 0x21u,
+	AD_WRITE  = 0x22u,
+
 	/**
 	 * Erase FLASH.
 	 */
@@ -260,7 +276,22 @@ enum rw_operation {
 	 */
 	ERAM = 0x01u,
 
+    // Write PIN
+	W_GEC = 0x01u,
+	W_AIN = 0x02u,
+
 };
+
+
+#define OPE_FLAG_AIN      (1 << 0)
+#define OPE_FLAG_WR       (1 << 1)
+#define OPE_FLAG_RD       (1 << 2)
+#define OPE_FLAG_CS       (1 << 3)
+#define OPE_FLAG_RST      (1 << 4)
+#define OPE_FLAG_LED      (1 << 5)
+#define OPE_FLAG_AD_SKIP  (1 << 6)
+#define OPE_FLAG_DAT_SKIP (1 << 7)
+
 
 /**
  * Enumeration of optional
